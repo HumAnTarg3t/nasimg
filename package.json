@@ -1,0 +1,17 @@
+{
+  "name": "nasimg",
+  "version": "1.0.0",
+  "description": "A script for sorting, checking metadata from a fileshare/NAS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "HumAnTarg3t",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "exif": "^0.6.0",
+    "jsdoc": "^4.0.4"
+  }
+}
