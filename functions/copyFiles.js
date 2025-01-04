@@ -22,7 +22,10 @@ async function copyFiles() {
         `${original_file_path}/${e}`,
         `${new_file_path}/${formatedDate}/${nameOffile}`,
         (err) => {
-          if (err) throw err;
+          if (err) {
+            console.log(err);
+            console.log(`${original_file_path}/${e}`);
+          }
         }
       );
       count++;
