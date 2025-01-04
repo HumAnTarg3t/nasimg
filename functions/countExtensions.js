@@ -1,5 +1,5 @@
 const isFile = require("./isFile");
-let files = require("../functions/foundation");
+const { foundationArray, files } = require("../functions/foundation");
 let extensionArray = [];
 
 /**

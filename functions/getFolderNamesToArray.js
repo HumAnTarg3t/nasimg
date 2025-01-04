@@ -1,7 +1,7 @@
 var fs = require("fs");
 require("dotenv").config({ path: "../.env" });
 const original_file_path = process.env.original_file_path;
-let files = require("../functions/foundation");
+const { foundationArray, files } = require("../functions/foundation");
 
 /**
  * An array that stores the names of folders that will be created.

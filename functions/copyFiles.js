@@ -2,7 +2,7 @@ var fs = require("fs");
 require("dotenv").config({ path: "../.env" });
 const new_file_path = process.env.new_file_path;
 const original_file_path = process.env.original_file_path;
-let files = require("../functions/foundation");
+const { foundationArray, files } = require("../functions/foundation");
 let count = 0;
 
 async function copyFiles() {
