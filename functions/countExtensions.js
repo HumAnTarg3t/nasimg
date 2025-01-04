@@ -1,9 +1,5 @@
-var fs = require("fs");
-require("dotenv").config();
-const path = require("path");
-const original_file_path = process.env.original_file_path;
-
-let files = fs.readdirSync(original_file_path, { recursive: true });
+const isFile = require("./isFile");
+let files = require("../functions/foundation");
 let extensionArray = [];
 
 /**
@@ -14,10 +10,6 @@ let extensionArray = [];
  * @type {Object<string, number>}
  */
 let extensionCounters = {}; // Object to store counters for each extension
-
-function isFile(pathItem) {
-  return !!path.extname(pathItem);
-}
 
 function checkExtensions() {
   files.forEach((e) => {
@@ -43,5 +35,6 @@ checkExtensions();
 
 let entries = Object.entries(extensionCounters);
 let sorted = entries.sort((a, b) => b[1] - a[1]);
+//   console.log(sorted);
 
 module.exports = sorted;
