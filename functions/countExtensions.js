@@ -1,5 +1,8 @@
 const isFile = require("./isFile");
 const { foundationArray, files } = require("../functions/foundation");
+const logger = require("../helpers/logger");
+var path = require("path");
+var scriptName = path.basename(__filename);
 let extensionArray = [];
 
 /**
@@ -35,6 +38,7 @@ checkExtensions();
 
 let entries = Object.entries(extensionCounters);
 let sorted = entries.sort((a, b) => b[1] - a[1]);
-//   console.log(sorted);
+logger("info", sorted, scriptName);
+// console.log(sorted);
 
 module.exports = sorted;
