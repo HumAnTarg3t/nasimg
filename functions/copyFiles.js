@@ -1,39 +1,52 @@
-var fs = require("fs");
+var fs = require("fs/promises");
 require("dotenv").config({ path: "../.env" });
 const logger = require("../helpers/logger");
 var path = require("path");
 var scriptName = path.basename(__filename);
 const new_file_path = process.env.new_file_path;
-const { foundationArray, files } = require("./foundation");
+const { foundationArray } = require("./foundation");
 let count = 0;
 
 async function copyFiles() {
-  foundationArray.forEach((e) => {
-    const stats = fs.statSync(`${e.path}/${e.fileName}`);
+  for (const e of foundationArray) {
+    const sourcePath = `${e.path}/${e.fileName}`;
+    const stats = await fs.stat(sourcePath);
     let modifiedDate = stats.mtime;
     modifiedDate = modifiedDate.toISOString().split("T");
     let formatedDate = modifiedDate[0];
+
     try {
-      fs.copyFile(
-        `${e.path}/${e.fileName}`,
-        `${new_file_path}/${formatedDate}/${e.fileName}`,
-        (err) => {
-          if (err) {
-            // console.log(err);
-            // console.log(`${e.filePath}/${e.fileName}`);
-            logger("error", err, scriptName);
-            logger("error", `${e.filePath}/${e.fileName}`, scriptName);
-          }
-        }
-      );
-      count++;
+      // Ensure destination folder exists
+      const destinationDir = `${new_file_path}/${formatedDate}`;
+      await fs.mkdir(destinationDir, { recursive: true });
+
+      const destinationPath = `${destinationDir}/${e.fileName}`;
+
+      // Check if the file already exists
+      try {
+        await fs.access(destinationPath);
+        logger(
+          "warn",
+          `File already exists: ${sourcePath} --> ${destinationPath}`,
+          scriptName
+        );
+        continue; // Skip to the next file
+      } catch {
+        // File doesn't exist; proceed with copying
+        await fs.cp(sourcePath, destinationPath, {
+          preserveTimestamps: true,
+        });
+        count++;
+      }
     } catch (error) {
-      // console.log(error);
       logger("error", error, scriptName);
     }
-  });
-  // console.log(`Copied ${count} files`);
+  }
+}
+
+async function startCopyFiles() {
+  await copyFiles();
   await logger("info", `Copied ${count} files`, scriptName);
 }
 
-module.exports = copyFiles;
+module.exports = startCopyFiles;
