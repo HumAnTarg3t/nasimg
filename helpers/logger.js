@@ -2,7 +2,8 @@ var fs = require("fs");
 const logpath = `./logs/`;
 async function logger(code,body,runningScript) {
   const content = `${new Date().toISOString().slice(11, 19)} ${code} ${runningScript}: ${body}\r\n`;
-
+  console.log(content);
+  
   //check if folder exists
   try {  
     if (!fs.existsSync(logpath)) {
