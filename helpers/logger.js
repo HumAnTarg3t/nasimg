@@ -1,21 +1,17 @@
 var fs = require("fs");
 const logpath = `./logs/`;
-async function logger(code,body,runningScript) {
+
+async function logger(code, body, runningScript) {
   const content = `${new Date().toISOString().slice(11, 19)} ${code} ${runningScript}: ${body}\r\n`;
   console.log(content);
-  
-  //check if folder exists
-  try {  
+
+  try {
     if (!fs.existsSync(logpath)) {
       fs.mkdirSync(logpath);
     }
-    //create file/or append if exists
-    fs.appendFile(
+    fs.appendFileSync(
       `${logpath}${new Date().toISOString().slice(0, 10)}.log`,
-      content,
-      function (err) {
-        if (err) throw err;
-      }
+      content
     );
   } catch (err) {
     console.error(err);

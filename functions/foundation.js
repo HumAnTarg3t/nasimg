@@ -27,14 +27,12 @@ let foundationArray = [];
 let files = fs.readdirSync(original_file_path, { recursive: true });
 
 files.forEach((e) => {
-  //velg kun filer
   if (isFile(e)) {
     const eSPlit = e.split("/");
-    //Hvis filen har mappenavn i fileName
 
     const fileName = eSPlit[eSPlit.length - 1];
     const extenionCheck = extension.includes(
-      fileName.toLowerCase().split(".")[1]
+      path.extname(fileName).slice(1).toLowerCase()
     );
     if (eSPlit.length > 1 && extenionCheck) {
       eSPlit.pop();
@@ -49,7 +47,7 @@ files.forEach((e) => {
       };
       foundationArray.push(obj);
     } else {
-      if (extension.includes(e.toLowerCase().split(".")[1])) {
+      if (extension.includes(path.extname(e).slice(1).toLowerCase())) {
         let obj = { path: `${original_file_path}/`, fileName: `${e}` };
         foundationArray.push(obj);
       }
@@ -66,6 +64,5 @@ logger(
   `found ${foundationArray.length} objects. Filename and filepath.`,
   scriptName
 );
-// console.log(foundationArray);
 exports.files = files;
 exports.foundationArray = foundationArray;

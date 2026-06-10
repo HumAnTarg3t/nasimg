@@ -2,15 +2,22 @@
   "name": "nasimg",
   "version": "1.0.0",
   "description": "A script for sorting, checking metadata from a fileshare/NAS",
-  "main": "index.js",
+  "main": "main.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
+    "start": "node main.js",
+    "docs": "jsdoc -r functions helpers -d docs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "HumAnTarg3t",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
     "jsdoc": "^4.0.4"
   }
 }
