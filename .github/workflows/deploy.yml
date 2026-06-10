@@ -11,13 +11,34 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
+      - name: Stop timer and wait for any active run to finish
+        run: |
+          sudo systemctl stop nasimg-main.timer
+          while systemctl is-active --quiet nasimg-main.service; do
+            echo "Service is running, waiting..."
+            sleep 3
+          done
+
       - name: Copy app files to deployment directory
         run: |
           cp -r functions helpers main.js package.json package-lock.json \
             /home/piuser/nasimg/
+
+      - name: Write .env from GitHub vars
+        env:
+          ORIGINAL_FILE_PATH: ${{ vars.ORIGINAL_FILE_PATH }}
+          NEW_FILE_PATH: ${{ vars.NEW_FILE_PATH }}
+        run: |
+          printf 'original_file_path = %s\nnew_file_path = %s\n' \
+            "$ORIGINAL_FILE_PATH" "$NEW_FILE_PATH" \
+            > /home/piuser/nasimg/.env
 
       - name: Install production dependencies
         run: npm ci --omit=dev --prefix /home/piuser/nasimg
 
       - name: Verify deployment
         run: test -f /home/piuser/nasimg/main.js
+
+      - name: Re-enable timer
+        if: always()
+        run: sudo systemctl start nasimg-main.timer

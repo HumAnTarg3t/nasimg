@@ -46,7 +46,14 @@ Logs are written to `./logs/YYYY-MM-DD.log` and to stdout.
 
 Pushing to `main` triggers the GitHub Actions workflow in `.github/workflows/deploy.yml`. It copies the app files to `/home/piuser/nasimg/` on the Pi and runs `npm ci --omit=dev`.
 
-**One-time setup:** the Pi's self-hosted runner must be registered to this repository under Settings → Actions → Runners. The `.env` file on the Pi is not touched by the workflow.
+**One-time setup:**
+
+1. Register the Pi's self-hosted runner to this repository under Settings → Actions → Runners.
+2. Add two repository variables under Settings → Secrets and variables → Actions → Variables:
+   - `ORIGINAL_FILE_PATH` — source path on the Pi (e.g. `/mnt/sorting`)
+   - `NEW_FILE_PATH` — destination path on the Pi (e.g. `/mnt/photos`)
+
+The workflow writes `.env` on the Pi from these vars on every deploy, so the file no longer needs to be managed manually.
 
 ## Logs and cleanup
 
