@@ -4,18 +4,19 @@
   "description": "A script for sorting, checking metadata from a fileshare/NAS",
   "main": "main.js",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node main.js",
-    "docs": "jsdoc -r functions helpers -d docs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "docs": "jsdoc -r lib -d docs",
+    "test": "node --test \"test/*.test.js\""
   },
   "keywords": [],
   "author": "HumAnTarg3t",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "exiftool-vendored": "^36.0.0"
   },
   "devDependencies": {
     "jsdoc": "^4.0.4"

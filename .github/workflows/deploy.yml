@@ -5,39 +5,84 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  APP_DIR: /home/piuser/nasimg
+
 jobs:
   deploy:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Stop timer and wait for any active run to finish
-        run: |
-          sudo systemctl stop nasimg-main.timer
-          while systemctl is-active --quiet nasimg-main.service; do
-            echo "Service is running, waiting..."
-            sleep 3
-          done
-
-      - name: Copy app files to deployment directory
-        run: |
-          cp -r functions helpers main.js package.json package-lock.json \
-            /home/piuser/nasimg/
-
-      - name: Write .env from GitHub vars
+      - name: Validate configuration and runtime prerequisites
         env:
           ORIGINAL_FILE_PATH: ${{ vars.ORIGINAL_FILE_PATH }}
           NEW_FILE_PATH: ${{ vars.NEW_FILE_PATH }}
         run: |
-          printf 'original_file_path = %s\nnew_file_path = %s\n' \
-            "$ORIGINAL_FILE_PATH" "$NEW_FILE_PATH" \
-            > /home/piuser/nasimg/.env
+          test -n "$ORIGINAL_FILE_PATH" || { echo "::error::ORIGINAL_FILE_PATH repository variable is empty"; exit 1; }
+          test -n "$NEW_FILE_PATH" || { echo "::error::NEW_FILE_PATH repository variable is empty"; exit 1; }
+          node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' \
+            || { echo "::error::Node >= 22 required on the Pi (found $(node -v)) — exiftool-vendored needs it"; exit 1; }
+          perl -e 1 || { echo "::error::perl not found — exiftool-vendored needs it at runtime"; exit 1; }
 
-      - name: Install production dependencies
-        run: npm ci --omit=dev --prefix /home/piuser/nasimg
+      - name: Stop timer and wait for any active run to finish
+        run: |
+          sudo systemctl stop nasimg-main.timer
+          # a running oneshot reports "activating", never "active" — check both
+          while state="$(systemctl show -p ActiveState --value nasimg-main.service)"; \
+                [ "$state" = "activating" ] || [ "$state" = "active" ]; do
+            echo "Service is $state, waiting..."
+            sleep 3
+          done
+
+      # Install into a staging dir and swap only on success, BEFORE the source
+      # lands — a failed ARM install leaves the previous working deployment
+      # (old code + old deps) fully intact
+      - name: Install production dependencies (staged)
+        run: |
+          STAGE="$APP_DIR/.deps-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp package.json package-lock.json "$STAGE"/
+          npm ci --omit=dev --prefix "$STAGE"
+          rm -rf "$APP_DIR/node_modules.old"
+          if [ -d "$APP_DIR/node_modules" ]; then mv "$APP_DIR/node_modules" "$APP_DIR/node_modules.old"; fi
+          mv "$STAGE/node_modules" "$APP_DIR/node_modules"
+          cp package.json package-lock.json "$APP_DIR"/
+          rm -rf "$APP_DIR/node_modules.old" "$STAGE"
+
+      - name: Sync app files (removes deleted modules)
+        run: |
+          rsync -a --delete lib/ "$APP_DIR"/lib/
+          rsync -a main.js "$APP_DIR"/
+          rm -rf "$APP_DIR"/functions "$APP_DIR"/helpers
+
+      # every optional var is mirrored too — otherwise a deploy silently
+      # reverts DRY_RUN/MIN_AGE_MINUTES/CONCURRENCY set on the Pi to defaults
+      - name: Write .env from GitHub vars
+        env:
+          ORIGINAL_FILE_PATH: ${{ vars.ORIGINAL_FILE_PATH }}
+          NEW_FILE_PATH: ${{ vars.NEW_FILE_PATH }}
+          TZ_HOME: ${{ vars.TZ_HOME }}
+          DRY_RUN: ${{ vars.DRY_RUN }}
+          MIN_AGE_MINUTES: ${{ vars.MIN_AGE_MINUTES }}
+          CONCURRENCY: ${{ vars.CONCURRENCY }}
+        run: |
+          {
+            printf 'original_file_path = %s\n' "$ORIGINAL_FILE_PATH"
+            printf 'new_file_path = %s\n' "$NEW_FILE_PATH"
+            if [ -n "$TZ_HOME" ]; then printf 'TZ_HOME = %s\n' "$TZ_HOME"; fi
+            if [ -n "$DRY_RUN" ]; then printf 'DRY_RUN = %s\n' "$DRY_RUN"; fi
+            if [ -n "$MIN_AGE_MINUTES" ]; then printf 'MIN_AGE_MINUTES = %s\n' "$MIN_AGE_MINUTES"; fi
+            if [ -n "$CONCURRENCY" ]; then printf 'CONCURRENCY = %s\n' "$CONCURRENCY"; fi
+          } > "$APP_DIR"/.env
 
       - name: Verify deployment
-        run: test -f /home/piuser/nasimg/main.js
+        run: |
+          node --check "$APP_DIR"/main.js
+          for f in "$APP_DIR"/lib/*.js; do node --check "$f"; done
+          # smoke-check the real config: fails loudly if a share is unmounted or paths are wrong
+          node -e "require('dotenv').config({ path: '$APP_DIR/.env' }); require('$APP_DIR/lib/config').loadConfig(); console.log('config OK')"
 
       - name: Re-enable timer
         if: always()
