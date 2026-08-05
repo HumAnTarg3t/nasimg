@@ -1,6 +1,5 @@
 node_modules
 .env
 testExport.js
-helpers/logs/*
 logs/*
 cleanup-logs.sh
