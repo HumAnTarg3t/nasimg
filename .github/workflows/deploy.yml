@@ -77,12 +77,16 @@ jobs:
             if [ -n "$CONCURRENCY" ]; then printf 'CONCURRENCY = %s\n' "$CONCURRENCY"; fi
           } > "$APP_DIR"/.env
 
+      # runs from APP_DIR: `node -e` resolves bare specifiers against cwd and its
+      # parents only, and the runner workspace has no node_modules — from there
+      # require("dotenv") dies with MODULE_NOT_FOUND before loadConfig() is reached
       - name: Verify deployment
+        working-directory: ${{ env.APP_DIR }}
         run: |
-          node --check "$APP_DIR"/main.js
-          for f in "$APP_DIR"/lib/*.js; do node --check "$f"; done
+          node --check main.js
+          for f in lib/*.js; do node --check "$f"; done
           # smoke-check the real config: fails loudly if a share is unmounted or paths are wrong
-          node -e "require('dotenv').config({ path: '$APP_DIR/.env' }); require('$APP_DIR/lib/config').loadConfig(); console.log('config OK')"
+          node -e "require('dotenv').config({ path: '.env' }); require('./lib/config').loadConfig(); console.log('config OK')"
 
       - name: Re-enable timer
         if: always()
