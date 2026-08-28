@@ -1,4 +1,4 @@
-name: Deploy to Raspberry Pi
+name: Deploy
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 env:
-  APP_DIR: /home/piuser/nasimg
+  APP_DIR: /srv/nasimg
 
 jobs:
   deploy:
-    runs-on: [self-hosted, pi]
+    runs-on: [self-hosted, srv]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
@@ -22,11 +22,20 @@ jobs:
           test -n "$ORIGINAL_FILE_PATH" || { echo "::error::ORIGINAL_FILE_PATH repository variable is empty"; exit 1; }
           test -n "$NEW_FILE_PATH" || { echo "::error::NEW_FILE_PATH repository variable is empty"; exit 1; }
           node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' \
-            || { echo "::error::Node >= 22 required on the Pi (found $(node -v)) — exiftool-vendored needs it"; exit 1; }
+            || { echo "::error::Node >= 22 required on the server (found $(node -v)) — exiftool-vendored needs it"; exit 1; }
           perl -e 1 || { echo "::error::perl not found — exiftool-vendored needs it at runtime"; exit 1; }
 
       - name: Stop timer and wait for any active run to finish
         run: |
+          # Record the timer state FIRST, so the final step can restore it
+          # rather than unconditionally starting the timer. During the host
+          # migration this host must stay idle: the Pi still owns the NAS
+          # shares, and two hosts sorting the same share double-process it.
+          if systemctl is-active --quiet nasimg-main.timer; then
+            echo "TIMER_WAS_ACTIVE=true" >> "$GITHUB_ENV"
+          else
+            echo "TIMER_WAS_ACTIVE=false" >> "$GITHUB_ENV"
+          fi
           sudo systemctl stop nasimg-main.timer
           # a running oneshot reports "activating", never "active" — check both
           while state="$(systemctl show -p ActiveState --value nasimg-main.service)"; \
@@ -36,7 +45,7 @@ jobs:
           done
 
       # Install into a staging dir and swap only on success, BEFORE the source
-      # lands — a failed ARM install leaves the previous working deployment
+      # lands — a failed install leaves the previous working deployment
       # (old code + old deps) fully intact
       - name: Install production dependencies (staged)
         run: |
@@ -88,6 +97,12 @@ jobs:
           # smoke-check the real config: fails loudly if a share is unmounted or paths are wrong
           node -e "require('dotenv').config({ path: '.env' }); require('./lib/config').loadConfig(); console.log('config OK')"
 
-      - name: Re-enable timer
+      - name: Restore timer state
         if: always()
-        run: sudo systemctl start nasimg-main.timer
+        run: |
+          if [[ "${TIMER_WAS_ACTIVE:-false}" == "true" ]]; then
+            sudo systemctl start nasimg-main.timer
+            echo "Timer restarted"
+          else
+            echo "Timer was not running before this deploy — left stopped"
+          fi
