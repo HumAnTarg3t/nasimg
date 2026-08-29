@@ -1,0 +1,18 @@
+version: 2
+
+# Keeps the SHA-pinned actions current. Dependabot rewrites both the SHA and
+# the trailing "# vX.Y.Z" comment, so the comment stays truthful.
+#
+# Monthly, not weekly: any push to main redeploys this app on the homelab
+# server (stops the timer, npm install, rsync --delete), so these PRs are
+# merged deliberately.
+#
+# The npm ecosystem is deliberately not enabled here yet — exiftool-vendored
+# updates ship a new ExifTool binary and want their own testing pass.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
