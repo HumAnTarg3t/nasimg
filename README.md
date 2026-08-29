@@ -98,11 +98,11 @@ Pushing to `main` triggers `.github/workflows/deploy.yml` on the homelab server'
 **Host hardening:**
 
 1. Node 22 and `perl` — installed by `Raspberry-Pi-stuff/server/bootstrap.sh`; the deploy pre-flights both and fails without them.
-2. **Not yet applied.** Add to the `[Unit]` section of `nasimg-main.service` (which lives in `Raspberry-Pi-stuff/server/systemd/`):
+2. `nasimg-main.service` (in `Raspberry-Pi-stuff/server/systemd/`) carries:
    ```
    RequiresMountsFor=/mnt/nas/sorting /mnt/nas/photos
    ```
-   systemd then refuses to start a run while a share is unmounted. `loadConfig()` already aborts in that case, so this is belt-and-braces rather than the only guard.
+   systemd refuses to start a run while either share is unmounted. `loadConfig()` already aborts in that case, so this is a second line of defence — but it fails at the unit level, where `systemctl status nasimg-main` shows it plainly. **These paths must match the `ORIGINAL_FILE_PATH` and `NEW_FILE_PATH` variables**; changing one without the other stops the timer firing at all.
 3. **Not applied — known trade-off.** The runner account currently has `NOPASSWD: ALL`, matching what the previous host actually had. The narrow per-command alternative was never sufficient for the deploy workflows, and tightening it across all of them is deferred to its own change. Push access to `main` executes code on the server; keep the repo private and branch-protect `main`.
 
 ## Logs and cleanup
