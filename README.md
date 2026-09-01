@@ -24,7 +24,7 @@ Uploads land in `original_file_path` (e.g. `/mnt/nas/sorting`); the sorted libra
 
 - Node.js ≥ 22 (required by `exiftool-vendored`)
 - perl (used by the vendored ExifTool)
-- Source and destination paths accessible on the filesystem (NAS paths mounted via CIFS — see [server/README-MOUNT.md](https://github.com/HumAnTarg3t/homelab-server/blob/master/server/README-MOUNT.md))
+- Source and destination paths accessible on the filesystem (NAS paths mounted via CIFS — see [server/README-MOUNT.md](https://github.com/HumAnTarg3t/homelab-server/blob/HEAD/server/README-MOUNT.md))
 
 ## Setup
 
