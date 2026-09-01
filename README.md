@@ -24,7 +24,7 @@ Uploads land in `original_file_path` (e.g. `/mnt/nas/sorting`); the sorted libra
 
 - Node.js ≥ 22 (required by `exiftool-vendored`)
 - perl (used by the vendored ExifTool)
-- Source and destination paths accessible on the filesystem (NAS paths mounted via CIFS — see [server/README-MOUNT.md](../Raspberry-Pi-stuff/server/README-MOUNT.md))
+- Source and destination paths accessible on the filesystem (NAS paths mounted via CIFS — see [server/README-MOUNT.md](https://github.com/HumAnTarg3t/homelab-server/blob/master/server/README-MOUNT.md))
 
 ## Setup
 
@@ -97,8 +97,8 @@ Pushing to `main` triggers `.github/workflows/deploy.yml` on the homelab server'
 
 **Host hardening:**
 
-1. Node 22 and `perl` — installed by `Raspberry-Pi-stuff/server/bootstrap.sh`; the deploy pre-flights both and fails without them.
-2. `nasimg-main.service` (in `Raspberry-Pi-stuff/server/systemd/`) carries:
+1. Node 22 and `perl` — installed by `homelab-server/server/bootstrap.sh`; the deploy pre-flights both and fails without them.
+2. `nasimg-main.service` (in `homelab-server/server/systemd/`) carries:
    ```
    RequiresMountsFor=/mnt/nas/sorting /mnt/nas/photos
    ```
