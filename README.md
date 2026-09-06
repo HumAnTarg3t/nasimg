@@ -16,7 +16,7 @@ Uploads land in `original_file_path` (e.g. `/mnt/nas/sorting`); the sorted libra
 
 - **Files still uploading are left alone** — anything modified in the last `MIN_AGE_MINUTES` (default 10) is skipped until a later run.
 - **Cross-filesystem moves are verified** — copy to a temp name, size-check against a fresh stat of the source, rename into place, and only then delete the source. A crash at any point leaves the original intact.
-- **Nothing is ever deleted on a name collision.** Same name + same size → the file is moved to `<destination>/duplicates/YYYY-MM-DD/` for manual review. Same name + different content → it is moved as `name-1.jpg`, `-2`, …
+- **Nothing is ever deleted on a name collision.** Same name + same size + **identical content** → the file is moved to `<destination>/duplicates/YYYY-MM-DD/` for manual review. Anything else — a different size, or the same size with different bytes — is moved as `name-1.jpg`, `-2`, … The SHA-256 is read only once a name and size collision has already been found, so the cost is paid on suspected duplicates rather than on every file. Before this check, two unrelated photos that happened to share a name and a byte count would file the second one under `duplicates/` instead of its date.
 - **Config is validated before anything runs** — both paths must exist (an unmounted share aborts the run instead of writing to the local disk), be distinct, and not be nested in each other.
 - **Failed files mark the run as failed** — the process exits non-zero so `systemctl status nasimg-main` actually shows breakage.
 
@@ -109,4 +109,6 @@ Pushing to `main` triggers `.github/workflows/deploy.yml` on the homelab server'
 
 Daily logs live in `/srv/nasimg/logs/`. A systemd timer runs `cleanup-logs.sh` daily to delete logs older than 30 days. The same lines go to journald (`journalctl -u nasimg-main`).
 
-Check the `duplicates/` folder in the destination occasionally — it collects files that already existed with identical name and size.
+Check the `duplicates/` folder in the destination occasionally — it collects files that already existed with an identical name, size and content.
+
+Note that `duplicates/` sits **inside** `new_file_path`, which is also Immich's external library root, so quarantined files stay visible to Immich unless the library excludes them. The Immich repo's `immich-dedup` runbook adds the `**/duplicates/**` exclusion pattern that hides them.

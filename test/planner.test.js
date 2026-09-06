@@ -92,6 +92,68 @@ describe("planAction", () => {
     assert.deepStrictEqual(plan, { action: "quarantine" });
   });
 
+
+  test("same name and size but different content moves under a -1 suffix", async () => {
+    // Two unrelated photos can share a name and a byte count; quarantining the
+    // second used to file a real photo under duplicates/ instead of its date.
+    const plan = await planAction({
+      fileName: "a.jpg",
+      sourceSize: 100,
+      statDest: destWith({ "a.jpg": 100 }),
+      sameContent: async () => false,
+    });
+    assert.deepStrictEqual(plan, { action: "move", destFileName: "a-1.jpg", renamed: true });
+  });
+
+  test("same name, same size and same content still quarantines", async () => {
+    const plan = await planAction({
+      fileName: "a.jpg",
+      sourceSize: 100,
+      statDest: destWith({ "a.jpg": 100 }),
+      sameContent: async () => true,
+    });
+    assert.deepStrictEqual(plan, { action: "quarantine" });
+  });
+
+  test("content is only compared once the sizes already match", async () => {
+    const compared = [];
+    await planAction({
+      fileName: "a.jpg",
+      sourceSize: 100,
+      statDest: destWith({ "a.jpg": 50, "a-1.jpg": 100 }),
+      sameContent: async (name) => {
+        compared.push(name);
+        return true;
+      },
+    });
+    // a.jpg differs in size, so it is never hashed; only a-1.jpg is.
+    assert.deepStrictEqual(compared, ["a-1.jpg"]);
+  });
+
+  test("an in-flight claim quarantines on size alone, with nothing to hash", async () => {
+    let hashed = false;
+    const plan = await planAction({
+      fileName: "a.jpg",
+      sourceSize: 100,
+      statDest: async (name) => (name === "a.jpg" ? { size: 100, claimed: true } : null),
+      sameContent: async () => {
+        hashed = true;
+        return false;
+      },
+    });
+    assert.deepStrictEqual(plan, { action: "quarantine" });
+    assert.equal(hashed, false, "a claimed target is not on disk yet, so it cannot be hashed");
+  });
+
+  test("defaults to the historical size-only behaviour when no comparator is given", async () => {
+    const plan = await planAction({
+      fileName: "a.jpg",
+      sourceSize: 100,
+      statDest: destWith({ "a.jpg": 100 }),
+    });
+    assert.deepStrictEqual(plan, { action: "quarantine" });
+  });
+
   test("gives up after 999 suffixes instead of looping forever", async () => {
     await assert.rejects(
       planAction({ fileName: "a.jpg", sourceSize: 1, statDest: async () => ({ size: 2 }) }),
